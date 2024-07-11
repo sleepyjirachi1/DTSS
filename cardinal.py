@@ -3,9 +3,8 @@
 
 import concurrent.futures as Threading
 from util import print_sf
-from pointers import LittleEndianPointer
 from core import memcpy, copy_table_of_ptrs_static
-from copying import copy_wild_encounter_tables, visit_and_copy_learnset
+from copying import copy_trainer_tables, copy_wild_encounter_tables, visit_and_copy_learnset
 
 
 NO_OF_MONS = 0x4F4
@@ -30,9 +29,7 @@ class TransferCardinal:
         """
         print_sf("Transferring Trainer Data...")
 
-        # Refactor this
-        TRAINER_TABLE_OFFSET = 0x23EAC8
-
+        # Struct types
         struct_t = {
             0: 8,
             1: 8,
@@ -40,26 +37,8 @@ class TransferCardinal:
             3: 16,
         }
 
-        pokemon_ptrs = []
-        
-        for _ in range(0x2E6 - 1):
-
-            with open(self.__rom_1, 'rb') as source:
-                source.seek(TRAINER_TABLE_OFFSET)
-                trainer_stuff = source.read(0x4)
-                source.read(0x1C)
-                count = source.read(0x4)
-                ptr = LittleEndianPointer(source.read(0x4))
-
-            if ptr.raw != b'\x00\x00\x00\x00':
-                offset = int(ptr.value, 16)
-                pokemon_ptrs.append((offset, count[0], struct_t[trainer_stuff[0]]))
-
-            memcpy(self.__rom_2, self.__rom_1, TRAINER_TABLE_OFFSET, TRAINER_TABLE_OFFSET, 0x40)
-
-            TRAINER_TABLE_OFFSET += 0x28
-
-        for offset, count, struct_sz in pokemon_ptrs: memcpy(self.__rom_2, self.__rom_1, offset, offset, count * struct_sz)
+        # Copy the trainer tables
+        copy_trainer_tables(self.__rom_2, self.__rom_1, 0x2E6 - 1, struct_t, 0x23EAC8)
 
     def __transfer_wild_encounter_tables(self):
         """
